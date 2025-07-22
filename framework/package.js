@@ -29,7 +29,7 @@ const encryptPassword = (password) => {
     }
 }
 
-const assigningUserDataToTheDatabase = (indexPath, name, email, salt, hash, res) => {
+const registration = (indexPath, name, email, salt, hash, res) => {
     fs.readFile(path.join(indexPath, "database/users.json"), (err, data) => {
         if (err) {
             log("Error reading users.json:", err);
@@ -49,10 +49,38 @@ const assigningUserDataToTheDatabase = (indexPath, name, email, salt, hash, res)
                 return res.end("Internal server error");
             }
         });
+
+        res.end(`Registration successful! ${name}`);
     })
+}
+
+const login = (indexPath, email, password, res) => {
+    fs.readFile(path.join(indexPath, "database/users.json"), (err, data) => {
+        if (err) {
+            log("Error reading users.json:", err);
+            res.statusCode = 500;
+            return res.end("Internal server error");
+        }
+
+        const users = JSON.parse(data);
+        const user = users.find(u => u.email === email || u.name === email);
+
+        if (!user) {
+            res.statusCode = 404;
+            return res.end("User not found");
+        }
+
+        const hash = crypto.scryptSync(password, user.salt, 64).toString('hex');
+        if (hash !== user.hash) {
+            res.statusCode = 401;
+            return res.end("Invalid password");
+        }
+
+        res.end(`Login successful! Welcome ${user.name}`);
+    });
 }
 
     
 
 
-module.exports = { json, encryptPassword, assigningUserDataToTheDatabase };
+module.exports = { json, encryptPassword, registration, login };

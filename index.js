@@ -1,6 +1,6 @@
 const { log } = require("console");
 const MiniExpress = require("./framework/main.js");
-const { json, encryptPassword, assigningUserDataToTheDatabase } = require("./framework/package.js");
+const { json, encryptPassword, registration, login } = require("./framework/package.js");
 const app = new MiniExpress;
 const indexPath = __dirname;
 const port = 3000;
@@ -50,10 +50,26 @@ app.post("/registration", (req, res) => {
     }
 
     const { salt, hash } = encryptPassword(password);
-    assigningUserDataToTheDatabase( indexPath, name, email, salt, hash, res );
+    registration( indexPath, name, email, salt, hash, res );
+});
 
+app.post("/data", (req, res) => {
+    log("POST request to /data");
+    let postData = JSON.stringify(req.body);
+    log(`Received body: ${postData}`);
+    res.end(`Received body: ${postData}`);
+});
 
-    res.end(`Registration successful! ${name}`);
+app.post("/login", (req, res) => {
+    log("POST request to /login");
+
+    const { email, password } = req.body;
+    if ( !email || !password ) {
+        res.statusCode = 400;
+        return res.end("All fields are required!");
+    }
+
+    login( indexPath, email, password, res );
 });
 
 app.listhen(port, () => {
