@@ -1,22 +1,19 @@
 const { log } = require("console");
 const MiniExpress = require("./framework/main.js");
-const json = require("./framework/package.js");
+const { json, encryptPassword, assigningUserDataToTheDatabase } = require("./framework/package.js");
 const app = new MiniExpress;
+const indexPath = __dirname;
 const port = 3000;
 
 app.use((req, res, next) => {
-    log(`Request received from this URL: ${req.url}\n\n`);
+    const protocol = req.socket.encrypted ? 'https' : 'http';
+    const host = req.headers.host;
+    log(`Request received from this URL: ${protocol}://${host}${req.url}\n\n`);
     next();
 });
 
 app.use((req, res, next) => {
-    log(`Lol, is it working?`);
-    next();
-});
-
-app.use((req, res, next) => {
-    log(`Lol, maybe it is working?\n\n`);
-    next();
+    json(req, res, next);
 });
 
 // Get routes
@@ -33,16 +30,30 @@ app.get("/sata", (req, res) => {
     res.end("Sata");
 });
 
-app.use((req, res, next) => {
-    json(req, res, next);
-    log("JSON middleware executed");
-    next();
-});
+
 
 // Post routes
 app.post("/data", (req, res) => {
     log("POST request to /data");
-    res.end("Data received!");
+    let postData = JSON.stringify(req.body);
+    log(`Received body: ${postData}`);
+    res.end(`Received body: ${postData}`);
+});
+
+app.post("/registration", (req, res) => {
+    log("POST request to /registration");
+
+    const {name, email, password} = req.body;
+    if (!name || !email || !password) {
+        res.statusCode = 400;
+        return res.end("All fields are required!");
+    }
+
+    const { salt, hash } = encryptPassword(password);
+    assigningUserDataToTheDatabase( indexPath, name, email, salt, hash, res );
+
+
+    res.end(`Registration successful! ${name}`);
 });
 
 app.listhen(port, () => {
